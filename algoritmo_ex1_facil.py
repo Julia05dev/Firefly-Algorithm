@@ -2,6 +2,8 @@ import time
 import numpy as np
 import matplotlib.pyplot as plt
 
+np.random.seed(42)
+
 # 1. DADOS DO PROBLEMA (NÍVEL FÁCIL)
 # Tempos de processamento das 30 tarefas
 tempos_tarefas = np.array([
@@ -100,4 +102,4 @@ plt.xlabel("Iteração")
 plt.ylabel("Makespan (C_max)")
 plt.grid(True)
 plt.tight_layout()
-plt.show()
+plt.savefig("evolucao.png")
