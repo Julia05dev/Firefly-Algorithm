@@ -1,6 +1,7 @@
 import time
 import numpy as np
 import matplotlib.pyplot as plt
+import os
 
 np.random.seed(42)
 
@@ -114,4 +115,7 @@ plt.xlabel("iteração")
 plt.ylabel("makespan (c_max)")
 plt.grid(True)
 plt.tight_layout()
-plt.savefig("evolucao.png")
+pasta_script = os.path.dirname(os.path.abspath(__file__))
+caminho_imagem = os.path.join(pasta_script, "evolucao_medio.png")
+plt.savefig(caminho_imagem)
+plt.show()
