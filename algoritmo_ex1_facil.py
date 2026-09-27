@@ -1,61 +1,103 @@
+import time
 import numpy as np
+import matplotlib.pyplot as plt
 
-def funcao_objetivo(x):
-    # Função Esfera: o mínimo global é 0 em x = [0, 0, ...]
-    return np.sum(x**2)
+# 1. DADOS DO PROBLEMA (NÍVEL FÁCIL)
+# Tempos de processamento das 30 tarefas
+tempos_tarefas = np.array([
+    12, 5, 9, 7, 4, 11, 8, 6, 10, 3,
+    7, 9, 5, 6, 4, 8, 12, 3, 7, 8,
+    3, 7, 8, 11, 4, 9, 10, 13, 5, 2
+])
 
-def algoritmo_vagalume(func_obj, dim, n_vagalumes, iteracoes, lb, ub, alfa, gama, beta0):
-    # Inicializa a população de vaga-lumes aleatoriamente nos limites
-    populacao = np.random.uniform(lb, ub, (n_vagalumes, dim))
-    intensidade = np.array([func_obj(ind) for ind in populacao])
+num_tarefas = len(tempos_tarefas)# 30
+num_maquinas = 5 #5 máquinas idênticas
+
+
+def calcular_makespan(solucao):
+    """
+    solucao: array com o ID da máquina (0 a 4) atribuída a cada tarefa.
+    Retorna o Makespan (C_max) da alocação.
+    """
+    cargas_maquinas = np.zeros(num_maquinas)
+    for id_tarefa, id_maquina in enumerate(solucao):
+        cargas_maquinas[id_maquina] += tempos_tarefas[id_tarefa]
+    return np.max(cargas_maquinas)
+
+
+# ALGORITMO DO VAGA LUME DISCRETO
+def algoritmo_vagalume_facil(n_vagalumes=30, iteracoes=100, alfa=0.5, gama=0.1, beta0=1.0):
+    inicio_tempo = time.time()
+
+    # inicialização aleatória da população 
+    populacao = np.random.uniform(0, num_maquinas - 1e-3, (n_vagalumes, num_tarefas))
     
-    # Melhor global encontrado
+    # converte para inteiros
+    intensidade = np.array([calcular_makespan(np.floor(ind).astype(int)) for ind in populacao])
+
+    # registra o histórico da melhor solução para o gráfico de evolução
+    historico_evolucao = []
+    
     melhor_idx = np.argmin(intensidade)
-    melhor_posicao = populacao[melhor_idx].copy()
-    melhor_valor = intensidade[melhor_idx]
-    
+    melhor_solucao = np.floor(populacao[melhor_idx]).astype(int)
+    melhor_makespan = intensidade[melhor_idx]
+
+    historico_evolucao.append(melhor_makespan)
+
     for t in range(iteracoes):
         for i in range(n_vagalumes):
             for j in range(n_vagalumes):
-                # Se o vaga-lume j é mais brilhante (menor valor na minimização) que i
+                # se o vaga-lume j é melhor (menor makespan) que i
                 if intensidade[j] < intensidade[i]:
-                    # Distância euclidiana entre os vaga-lumes i e j
                     r = np.linalg.norm(populacao[i] - populacao[j])
-                    # Atração diminui com a distância (absorção da luz gama)
                     beta = beta0 * np.exp(-gama * (r**2))
-                    # Movimenta o vaga-lume i em direção a j + componente aleatória (alfa)
-                    mutacao = alfa * (np.random.rand(dim) - 0.5)
-                    populacao[i] = populacao[i] + beta * (populacao[j] - populacao[i]) + mutacao
-                    # Garante que continua dentro dos limites
-                    populacao[i] = np.clip(populacao[i], lb, ub)
-                    # Atualiza a intensidade
-                    intensidade[i] = func_obj(populacao[i])
+                    mutacao = alfa * (np.random.rand(num_tarefas) - 0.5)
                     
-                    # Atualiza o melhor global
-                    if intensidade[i] < melhor_valor:
-                        melhor_valor = intensidade[i]
-                        melhor_posicao = populacao[i].copy()
-                        
-        # Reduz o fator de aleatoriedade ao longo das gerações
-        alfa *= 0.99
-        
-    return melhor_posicao, melhor_valor
+                    # movimentação contínua
+                    populacao[i] = populacao[i] + beta * (populacao[j] - populacao[i]) + mutacao
+                    populacao[i] = np.clip(populacao[i], 0, num_maquinas - 1e-3)
+                    
+                    #avaliação discreta
+                    solucao_discreta = np.floor(populacao[i]).astype(int)
+                    intensidade[i] = calcular_makespan(solucao_discreta)
 
-# Parâmetros do Algoritmo
-dimensoes = 3          # Número de variáveis (dimensões do problema)
-n_vagalumes = 25       # Tamanho da população
-n_iteracoes = 50       # Número de gerações/iterações
-limite_inf = -5.0      # Limite inferior de busca
-limite_sup = 5.0       # Limite superior de busca
-alfa_inicial = 0.5     # Controle da aleatoriedade do movimento
-gama = 1.0             # Coeficiente de absorção da luz
-beta0 = 1.0            # Atratividade base na distância r=0
+                    if intensidade[i] < melhor_makespan:
+                        melhor_makespan = intensidade[i]
+                        melhor_solucao = solucao_discreta.copy()
 
-# Execução
-melhor_pos, melhor_val = algoritmo_vagalume(
-    funcao_objetivo, dimensoes, n_vagalumes, n_iteracoes, 
-    limite_inf, limite_sup, alfa_inicial, gama, beta0
-)
+        alfa *= 0.98  # Decaimento do fator de aleatoriedade
+        historico_evolucao.append(melhor_makespan)
 
-print(f"Melhor posição encontrada: {melhor_pos}")
-print(f"Valor mínimo da função: {melhor_val}")
+    tempo_execucao = time.time() - inicio_tempo
+    return melhor_solucao, melhor_makespan, tempo_execucao, historico_evolucao
+
+
+# executando e apresentando os resultados
+solucao, makespan, tempo_exec, historico = algoritmo_vagalume_facil()
+
+# organizando os resultados por máquina
+maquinas = {m: [] for m in range(num_maquinas)}
+cargas = np.zeros(num_maquinas, dtype=int)
+
+for id_tarefa, id_maquina in enumerate(solucao):
+    maquinas[id_maquina].append(id_tarefa + 1)  # Tarefas de 1 a 30
+    cargas[id_maquina] += tempos_tarefas[id_tarefa]
+
+print("#" * 80)
+print("RESULTADOS - NÍVEL FÁCIL")
+print("#" * 80)
+print(f"b) Valor final do Makespan (C_max): {makespan}")
+print(f"c) Tempo de execução: {tempo_exec:.4f} segundos\n")
+print("a) Atribuição final de tarefas às máquinas:")
+for m in range(num_maquinas):
+    print(f"   Máquina {m + 1}: Tarefas {maquinas[m]} | Carga total: {cargas[m]}")
+
+# d) gráfico da evolução da solução
+plt.figure(figsize=(8, 4))
+plt.plot(historico, color='blue', linewidth=2)
+plt.title("Evolução do Makespan (Algoritmo do Vaga-lume - Nível Fácil)")
+plt.xlabel("Iteração")
+plt.ylabel("Makespan (C_max)")
+plt.grid(True)
+plt.tight_layout()
+plt.show()
