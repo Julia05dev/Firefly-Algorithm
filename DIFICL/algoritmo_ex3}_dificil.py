@@ -1,6 +1,6 @@
 import time
 import numpy as np
-#import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt
 import os
 
 np.random.seed(42)
@@ -162,3 +162,14 @@ for m in range(num_maquinas):
     print(f"      -> carga total: {cargas[m]} | tempo efetivo: {tempos_efetivos_finais[m]:.4f}")
 
 # d) gráfico da evolução da solução
+print(f"\nmakespan inicial: {historico[0]:.4f}")
+print(f"makespan final: {historico[-1]:.4f}")
+print(f"melhora: {historico[0] - historico[-1]:.4f}")
+
+plt.figure(figsize=(10, 5))
+plt.plot(historico, color='orange')
+plt.title("evolução do makespan - vagalume (nível difícil)")
+plt.xlabel("iteração")
+plt.ylabel("melhor makespan")
+plt.grid(True)
+plt.show()
