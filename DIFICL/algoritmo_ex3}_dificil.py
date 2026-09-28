@@ -37,8 +37,8 @@ prioridade = {
 }
 
 
-num_tarefas = len(tempos_tarefas) # 40
-num_maquinas = 5 # 5 máquinas
+num_tarefas = len(tempos_tarefas)
+num_maquinas = 5 
 
 
 def calcular_makespan(solucao):
@@ -46,7 +46,6 @@ def calcular_makespan(solucao):
     solucao: array com o id da máquina (0 a 4) atribuída a cada tarefa.
     retorna o makespan (c_max) da alocação considerando as capacidades.
     """
-    # grau de entrada de cada tarefa, garantir que todas as prioridades já estão feitas
     grau_entrada = np.zeros(num_tarefas, dtype=int)
     dependentes = {i: [] for i in range(num_tarefas)}
     
@@ -62,7 +61,7 @@ def calcular_makespan(solucao):
     ordem_execucao = list(range(num_tarefas))
     
     while processadas < num_tarefas:
-        # verificar tarefas que ainda não foram feitas
+        # verificar tarefas que ainda nao foram feitas
         candidatas = [t for t in tarefas_prontas if t in ordem_execucao]
         if not candidatas:
             break
@@ -90,14 +89,11 @@ def calcular_makespan(solucao):
     return np.max(tempo_disponivel_maquina)
 
 
-# algoritmo do vagalume discreto
+# algoritmo do vagalume
 def algoritmo_vagalume_dificil(n_vagalumes=40, iteracoes=150, alfa=0.5, gama=0.1, beta0=1.0):
     inicio_tempo = time.time()
 
-    # inicialização aleatória da população 
     populacao = np.random.uniform(0, num_maquinas - 1e-3, (n_vagalumes, num_tarefas))
-    
-    # converte para inteiros
     intensidade = np.array([calcular_makespan(np.floor(ind).astype(int)) for ind in populacao])
 
     # registra o histórico da melhor solução para o gráfico de evolução
@@ -112,17 +108,14 @@ def algoritmo_vagalume_dificil(n_vagalumes=40, iteracoes=150, alfa=0.5, gama=0.1
     for t in range(iteracoes):
         for i in range(n_vagalumes):
             for j in range(n_vagalumes):
-                # se o vaga-lume j é melhor (menor makespan) que i
                 if intensidade[j] < intensidade[i]:
                     r = np.linalg.norm(populacao[i] - populacao[j])
                     beta = beta0 * np.exp(-gama * (r**2))
                     mutacao = alfa * (np.random.rand(num_tarefas) - 0.5)
                     
-                    # movimentação contínua
                     populacao[i] = populacao[i] + beta * (populacao[j] - populacao[i]) + mutacao
                     populacao[i] = np.clip(populacao[i], 0, num_maquinas - 1e-3)
                     
-                    # avaliação discreta
                     solucao_discreta = np.floor(populacao[i]).astype(int)
                     intensidade[i] = calcular_makespan(solucao_discreta)
 
@@ -136,19 +129,16 @@ def algoritmo_vagalume_dificil(n_vagalumes=40, iteracoes=150, alfa=0.5, gama=0.1
     tempo_execucao = time.time() - inicio_tempo
     return melhor_solucao, melhor_makespan, tempo_execucao, historico_evolucao
 
-
-# executando e apresentando os resultados
 solucao, makespan, tempo_exec, historico = algoritmo_vagalume_dificil()
 
-# organizando os resultados por máquina
+# organiza os resultados por máquina
 maquinas = {m: [] for m in range(num_maquinas)}
 cargas = np.zeros(num_maquinas, dtype=int)
 
 for id_tarefa, id_maquina in enumerate(solucao):
     maquinas[id_maquina].append(id_tarefa + 1)  # tarefas de 1 a 40
     cargas[id_maquina] += tempos_tarefas[id_tarefa]
-    
-# tempos efetivos para a impressão final
+
 tempos_efetivos_finais = cargas
 
 print("#" * 80)
@@ -161,7 +151,7 @@ for m in range(num_maquinas):
     print(f"   máquina {m + 1}: tarefas {maquinas[m]}")
     print(f"      -> carga total: {cargas[m]} | tempo efetivo: {tempos_efetivos_finais[m]:.4f}")
 
-# d) gráfico da evolução da solução
+#gráfico
 print(f"\nmakespan inicial: {historico[0]:.4f}")
 print(f"makespan final: {historico[-1]:.4f}")
 print(f"melhora: {historico[0] - historico[-1]:.4f}")
